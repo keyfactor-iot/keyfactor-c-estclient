@@ -50,7 +50,7 @@ The EST Client is a completely self-contained EST client example application.  T
 	sudo apt update
 	sudo apt install -y build-essential git libcurl4-gnutls-dev curl libssl-dev
     cd ~
-    git clone
+    git clone https://github.com/Keyfactor/keyfactor-c-estclient.git
     cd keyfactor-c-estclient
     make
 
@@ -59,7 +59,7 @@ The EST Client is a completely self-contained EST client example application.  T
 	sudo dnf groupinstall -y "Development Tools"
 	sudo dnf install -y curl-devel curl openssl-devel
     cd ~
-    git clone
+    git clone https://github.com/Keyfactor/keyfactor-c-estclient.git
     cd keyfactor-c-estclient
     make
 
