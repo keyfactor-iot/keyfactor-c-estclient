@@ -6,10 +6,12 @@ CFLAGS += -Wextra
 CFLAGS += -Werror
 
 # Optimize Build
-DEBUG_FLAGS = -g0 -Os
+DEBUG_FLAGS = -g0 -Os -ffunction-sections -fdata-sections -flto
 # Build with full debug and no optimization
 # DEBUG_FLAGS = -g3 -O0
 DEFINES =
+
+LINKER_OPTIONS = -Wl,--gc-sections
 
 OPENLIBS = -I ./include -I/usr/local/include/curl -L/usr/local/lib
 OPENLIBS = -lcrypto -lcurl
@@ -22,17 +24,17 @@ OOBJ = $(OSRC:%.c=%.o)
 # The base openSSL build for a 64-bit OS
 openssl: DEFINES += -D__OPEN_SSL__
 openssl: ${OOBJ}
-	${CC} ${CFLAGS} ${DEBUG_FLAGS} ${DEFINES} -o keyfactor-c-estclient $^ ${OPENLIBS}
+	${CC} ${CFLAGS} ${DEBUG_FLAGS} ${LINKER_OPTIONS} ${DEFINES} -o keyfactor-c-estclient $^ ${OPENLIBS}
 
 # The base openSSL build to create a shared library
 openlib: DEFINES += -D__OPEN_SSL__ -D__MAKE_LIBRARY__
 openlib: ${OOBJ}
-	${CC} -shared ${CFLAGS} ${DEBUG_FLAGS} ${DEFINES} -o keyfactor-c-estclient.so $^ ${OPENLIBS}
+	${CC} -shared ${CFLAGS} ${DEBUG_FLAGS} ${LINKER_OPTIONS} ${DEFINES} -o keyfactor-c-estclient.so $^ ${OPENLIBS}
 
 # The openSSL build for any 32-bit OS like RaspOS
 openpi: DEFINES += -D__OPEN_SSL__ -Wno-format
 openpi: ${OOBJ}
-	${CC} ${CFLAGS} ${DEBUG_FLAGS} ${DEFINES} -o keyfactor-c-estclient $^ ${OPENLIBS}
+	${CC} ${CFLAGS} ${DEBUG_FLAGS} ${LINKER_OPTIONS} ${DEFINES} -o keyfactor-c-estclient $^ ${OPENLIBS}
 
 # How to install the shared library
 openinstall: libagent.so
@@ -57,3 +59,7 @@ clean: deleteallobs
 
 .PHONY: all
 all: openssl
+
+preprocessor: DEFINES += -D__OPEN_SSL__
+preprocessor: ${OSRC}
+	${CC} ${CFLAGS} ${DEFINES} ${WARN_FLAGS} ${DEBUG_FLAGS} ${C_STD} -E ${OSRC}

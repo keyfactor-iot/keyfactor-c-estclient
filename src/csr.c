@@ -1,12 +1,12 @@
 /******************************************************************************/
-/* Copyright 2021 Keyfactor                                                   */
+/* Copyright 2023 Keyfactor                                                   */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License.  You may obtain a */
 /* copy of the License at http://www.apache.org/licenses/LICENSE-2.0.  Unless */
 /* required by applicable law or agreed to in writing, software distributed   */
 /* under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES   */
 /* OR CONDITIONS OF ANY KIND, either express or implied. See the License for  */
-/* thespecific language governing permissions and limitations under the       */
+/* the specific language governing permissions and limitations under the      */
 /* License.                                                                   */
 /******************************************************************************/
 #define _CRT_SECURE_NO_WARNINGS
@@ -44,17 +44,22 @@
 /* @return - success: true                                                    */
 /*           failure: false                                                   */
 /*                                                                            */
-bool generate_keypair(const char* keyType, int keySize) {
+bool generate_keypair(const char* _keyType, int _keySize) {
 	bool bResult = false;
 
-	log_verbose("%s::%s(%d) : Generating key pair with type %s and length %d",	LOG_INF, keyType, keySize);
-	
-	if(strcasecmp(keyType, "RSA") == 0)
-		bResult = ssl_generate_rsa_keypair(keySize);
-    else if(strcasecmp(keyType, "ECC") == 0)
-		bResult = ssl_generate_ecc_keypair(keySize);
-	else
-		log_error("%s::%s(%d) : Invalid key type %s", LOG_INF, keyType);
+    if (0 >= _keySize) {
+        log_error("%s::%s(%d) : Error in the size of the key requested.", LOG_INF);
+    } else if ( (NULL == _keyType) || ( (size_t)0 == strlen(_keyType) ) ) {
+        log_error("%s::%s(%d) : Error KeyType must be defined", LOG_INF);
+    } else {
+        log_verbose("%s::%s(%d) : Generating key pair with type %s and length %d", LOG_INF, _keyType, _keySize);
+        if ( 0 == strcasecmp(_keyType, "RSA") )
+            bResult = ssl_generate_rsa_keypair(_keySize);
+        else if ( 0 == strcasecmp(keyType, "ECC") )
+            bResult = ssl_generate_ecc_keypair(_keySize);
+        else
+            log_error("%s::%s(%d) : Invalid key type %s", LOG_INF, _keyType);
+    }
 
 	return bResult;
 } /* generate_keypair */
@@ -81,12 +86,19 @@ char* generate_csr(const char* asciiSubject, size_t* csrLen, const bool useChall
 	return csrString;
 } /* generate_csr */
 #else
-char* generate_csr(const char* asciiSubject, size_t* csrLen, const bool useChallengePassword,
-                   const char* challengePassword) {
+char* generate_csr(const char* asciiSubject,
+                   size_t* const csrLen, /* parasoft-suppress CERT_C-API00-a "Freeing Memory must check for NULL" */
+                   const bool useChallengePassword, /* parasoft-suppress CERT_C-API00-a "Freeing Memory must check for NULL" */
+                   const char* const challengePassword) /* parasoft-suppress CERT_C-API00-a "Freeing Memory must check for NULL" */
+{
     char* csrString = NULL;
-    csrString = ssl_generate_csr(asciiSubject, csrLen, useChallengePassword, challengePassword);
-    if ( NULL == csrString )
-        log_error("%s::%s(%d) : FAILED to generate CSR using Subject of %s", LOG_INF, asciiSubject);
+    if ( (NULL == asciiSubject) || ((size_t)0 == strlen(asciiSubject))) {
+        log_error("%s::%s(%d) : Error, must provide an ascii subject to this function", LOG_INF);
+    } else {
+        csrString = ssl_generate_csr(asciiSubject, csrLen, useChallengePassword, challengePassword);
+        if (NULL == csrString)
+            log_error("%s::%s(%d) : FAILED to generate CSR using Subject of %s", LOG_INF, asciiSubject);
+    }
     return csrString;
 } /* generate_csr */
 #endif
@@ -107,14 +119,29 @@ char* generate_csr(const char* asciiSubject, size_t* csrLen, const bool useChall
 /* @return - success : 0                                                      */
 /*           failure : an unsigned long error code                            */
 /*                                                                            */
-unsigned long save_cert_key(const char* storePath,
-                            const char* keyPath,
-							const char* password,
-                            const char* cert) {
-	unsigned long err = 0;
-	err = ssl_save_cert_key(storePath, keyPath, password, cert);
-	if ( 0 != err )
-        log_error("%s::%s(%d) : Failed to save certificate or key", LOG_INF);
+unsigned long save_cert_key(const char* const storePath,
+                            const char* const keyPath,
+							const char* const _password, /* parasoft-suppress CERT_C-API00-a "Freeing Memory must check for NULL" */
+                            const char* const cert)
+{
+    unsigned long err = 0;
+#define ERROR_CODE_RETURN 999
+
+    if ( (NULL == storePath) || ( (size_t)0 == strlen(storePath) ) ) {
+        log_error("%s::%s(%d) : storePath must be defined", LOG_INF);
+        err = ERROR_CODE_RETURN;
+    } else if ( (NULL == keyPath) || ( (size_t)0 == strlen(keyPath) ) ) {
+        log_error("%s::%s(%d) : keyPath must be defined", LOG_INF);
+        err = ERROR_CODE_RETURN;
+    } else if ( (NULL == cert) || ( (size_t)0 == strlen(cert) ) ) {
+        log_error("%s::%s(%d) : The cert must be defined", LOG_INF);
+        err = ERROR_CODE_RETURN;
+    } else {
+        err = ssl_save_cert_key(storePath, keyPath, _password, cert);
+        if (0LU != err)
+            log_error("%s::%s(%d) : Failed to save certificate or key", LOG_INF);
+    }
+
 	return err;
 } /* save_cert_key */
 

@@ -6,7 +6,7 @@
 /* required by applicable law or agreed to in writing, software distributed   */
 /* under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES   */
 /* OR CONDITIONS OF ANY KIND, either express or implied. See the License for  */
-/* thespecific language governing permissions and limitations under the       */
+/* the specific language governing permissions and limitations under the      */
 /* License.                                                                   */
 /******************************************************************************/
 
@@ -24,13 +24,13 @@ char* generate_csr(const char* asciiSubject, size_t* csrLen, const bool useChall
                    const char* challengePassword, const char* altSubjectName,
                    const bool useNameChange);
 #else
-char* generate_csr(const char* asciiSubject, size_t* csrLen, const bool useChallengePassword,
-                   const char* challengePassword);
+char* generate_csr(const char* asciiSubject, size_t* const csrLen, const bool useChallengePassword,
+                   const char* const challengePassword);
 #endif
-unsigned long save_cert_key(const char* storePath,
-                            const char* keyPath,
-                            const char* password,
-                            const char* cert);
+unsigned long save_cert_key(const char* const storePath,
+                            const char* const keyPath,
+                            const char* const _password,
+                            const char* const cert);
 #endif /* __CSR_H__ */
 /******************************************************************************/
 /******************************* END OF FILE **********************************/

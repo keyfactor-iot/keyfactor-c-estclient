@@ -1,12 +1,12 @@
 /******************************************************************************/
-/* Copyright 2021 Keyfactor                                                   */
+/* Copyright 2023 Keyfactor                                                   */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License.  You may obtain a */
 /* copy of the License at http://www.apache.org/licenses/LICENSE-2.0.  Unless */
 /* required by applicable law or agreed to in writing, software distributed   */
 /* under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES   */
 /* OR CONDITIONS OF ANY KIND, either express or implied. See the License for  */
-/* thespecific language governing permissions and limitations under the       */
+/* the specific language governing permissions and limitations under the      */
 /* License.                                                                   */
 /******************************************************************************/
 #define _CRT_SECURE_NO_WARNINGS
@@ -246,7 +246,7 @@ static void populate_subject(X509_NAME* nm, char* key, char* value)
 /* @return - success = a ptr to a filled out X509_NAME subject                */
 /*         - failure = NULL                                                   */
 /*                                                                            */
-static X509_NAME* parse_subject(const char* subject)
+static X509_NAME* parse_subject(const char* subject) /* parasoft-suppress METRICS-28_duplicated_1 "Complexity 21 is OK" */
 {
 	X509_NAME* subjName = NULL;
 	char* keyBytes = NULL;
@@ -268,12 +268,17 @@ static X509_NAME* parse_subject(const char* subject)
 	}
 
 	localSubjectPtr = strdup(subject);
-	curPtr = localSubjectPtr;
-	log_debug("%s::%s(%d) : Subject \"%s\" is %ld characters long", LOG_INF, curPtr, strlen(curPtr));
+    if (localSubjectPtr) {
+        curPtr = localSubjectPtr;
+        log_debug("%s::%s(%d) : Subject \"%s\" is %ld characters long", LOG_INF, curPtr, strlen(curPtr));
 
-	log_trace("%s::%s(%d) : hasError = %s endOfSubject = %s", LOG_INF,
-              hasError ? "true" : "false",
-              endOfSubject ? "true" : "false");
+        log_trace("%s::%s(%d) : hasError = %s endOfSubject = %s", LOG_INF,
+                  hasError ? "true" : "false",
+                  endOfSubject ? "true" : "false");
+    } else {
+        log_error("%s::%s(%d) : Error allocating memory for subject", LOG_INF);
+        hasError = true;
+    }
 
 	while(!hasError && !endOfSubject) {
 		/* Get the Key */

@@ -1,12 +1,12 @@
 /******************************************************************************/
-/* Copyright 2021 Keyfactor                                                   */
+/* Copyright 2023 Keyfactor                                                   */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License.  You may obtain a */
 /* copy of the License at http://www.apache.org/licenses/LICENSE-2.0.  Unless */
 /* required by applicable law or agreed to in writing, software distributed   */
 /* under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES   */
 /* OR CONDITIONS OF ANY KIND, either express or implied. See the License for  */
-/* thespecific language governing permissions and limitations under the       */
+/* the specific language governing permissions and limitations under the      */
 /* License.                                                                   */
 /******************************************************************************/
 #define _CRT_SECURE_NO_WARNINGS
@@ -94,6 +94,38 @@ static size_t WriteMemoryCallback(void *contents, size_t size, size_t nmemb, voi
 } /* WriteMemoryCallback */
 
 /**                                                                           */
+/*  Set the client certificate for mTLS                                       */
+/*                                                                            */
+/*   @param curl = a Pointer to a curl session                                */
+/*   @param clientCert = a string with a filename containing a CA signed      */
+/*                       cert for this platform (for TLS communication)       */
+/*                                                                            */
+static void set_client_certificate(CURL* curl, const char* clientCert) {
+    log_trace("%s::%s(%d) : Setting clientCert to %s", LOG_INF, clientCert);
+    curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "PEM");
+    curl_easy_setopt(curl, CURLOPT_SSLCERT, clientCert);
+} /* set_client_certificate */
+
+/**                                                                           */
+/*  Add the client key & password for mTLS                                    */
+/*                                                                            */
+/*   @param curl = a Pointer to a curl session                                */
+/*   @param clientKey = a string with a filename containing the private key   */
+/*                      associated with the clientCert                        */
+/*   @param clientKeyPass = a string with the password associated with the    */
+/*                          clientKey                                         */
+/*                                                                            */
+static void set_client_key(CURL* curl, const char* clientKey, const char* clientKeyPass) {
+    log_trace("%s::%s(%d) : Setting clientKey to %s", LOG_INF, clientKey);
+    curl_easy_setopt(curl, CURLOPT_SSLKEY, clientKey);
+
+    if (clientKeyPass) {
+        log_trace("%s::%s(%d) : Setting clientPassword", LOG_INF);
+        curl_easy_setopt(curl, CURLOPT_KEYPASSWD, clientKeyPass);
+    }
+} /* set_client_key */
+
+/**                                                                           */
 /*  Add information required to establish an mTLS session with CURL           */
 /*                                                                            */
 /*   @param curl = a Pointer to a curl session                                */
@@ -108,35 +140,19 @@ static void add_mTLS(CURL* curl,
                      const char* clientCert,
                      const char* clientKey,
                      const char* clientKeyPass) {
-    size_t dummySize = 0;
-    do {
-        if (false == file_exists(clientCert) ||
-            false == file_exists(clientKey)) {
-            log_warn("%s::%s(%d) : Either a client cert at %s or client key at %s does not exist, bypassing",
-                     LOG_INF, clientCert, clientKey);
-            break;
-        }
 
-        /* We have both the filenames and the files exist for the clientCert and clientKey */
-        log_trace("%s::%s(%d) : Setting clientCert to %s", LOG_INF, clientCert);
-        (void) curl_easy_setopt(curl, CURLOPT_SSLCERTTYPE, "PEM");
-        (void) curl_easy_setopt(curl, CURLOPT_SSLCERT, clientCert);
-        read_file_bytes(clientCert, &client_cert_compressed, &dummySize);
-        if (NULL == client_cert_compressed) {
-            log_error("%s::%s(%d) : Out of memory copying client certificate", LOG_INF);
-            break;
-        }
+    if (!file_exists(clientCert)) {
+        log_warn("%s::%s(%d) : Client cert at %s does not exist, bypassing", LOG_INF, clientCert);
+        return;
+    }
 
-        log_trace("%s::%s(%d) : Setting clientKey to %s", LOG_INF, clientKey);
-        (void) curl_easy_setopt(curl, CURLOPT_SSLKEY, clientKey);
-        if (clientKeyPass) {
-            log_trace("%s::%s(%d) : Setting clientPassword", LOG_INF);
-            (void) curl_easy_setopt(curl, CURLOPT_KEYPASSWD, clientKeyPass);
-        }
+	if (!file_exists(clientKey)) {
+		log_warn("%s::%s(%d) : Client key at %s does not exist, bypassing", LOG_INF, clientKey);
+		return;
+	}
 
-    } while(false);
-
-    return;
+    set_client_certificate(curl, clientCert);
+    set_client_key(curl, clientKey, clientKeyPass);
 } /* add_mTLS */
 
 /**                                                                           */
@@ -158,8 +174,8 @@ static void add_mTLS(CURL* curl,
 /*                                                                            */
 static void common_curl_setup(CURL* curl,
                               const char* url,
-                              const char* username,
-                              const char* password,
+                              const char* _username,
+                              const char* _password,
                               const char* trustStore,
                               const char* clientCert,
                               const char* clientKey,
@@ -171,10 +187,10 @@ static void common_curl_setup(CURL* curl,
     /*  Set up curl to point to a url using the username and Password         */
     /*  passed to the function                                                */
     /**************************************************************************/
-    if ( username && password && (1 < strlen(username)) && (1 < strlen(password)) ) {
+    if ( _username && _password && (1 < strlen(_username)) && (1 < strlen(_password)) ) {
         log_trace("%s::%s(%d) : Configuring username and password", LOG_INF);
-        (void)curl_easy_setopt(curl, CURLOPT_USERNAME, username);
-        (void)curl_easy_setopt(curl, CURLOPT_PASSWORD, password);
+        (void)curl_easy_setopt(curl, CURLOPT_USERNAME, _username);
+        (void)curl_easy_setopt(curl, CURLOPT_PASSWORD, _password);
     } else {
         log_trace("%s::%s(%d) : Username and password not supplied - skipping", LOG_INF);
     }
@@ -251,8 +267,8 @@ static void common_curl_setup(CURL* curl,
 /*           255 if the dynamic memory allocation for pRespData fails         */
 /*           300-511 The HTTP response error (e.g. 404 Not Found)             */
 /*                                                                            */
-int http_post_json(const char* url, const char* username,
-                   const char* password, const char* trustStore,
+int http_post_json(const char* url, const char* _username,
+                   const char* _password, const char* trustStore,
                    const char* clientCert, const char* clientKey,
                    const char* clientKeyPass, char* postData,
                    const char* headers[], const unsigned int headerCount,
@@ -261,12 +277,12 @@ int http_post_json(const char* url, const char* username,
     log_debug("%s::%s(%d) : Preparing to POST to %s", LOG_INF, url);
     if (is_log_trace()) {
         log_trace("%s::%s(%d) : url           = %s", LOG_INF, NULL == url ? "null" : url);
-        log_trace("%s::%s(%d) : username      = %s", LOG_INF, NULL == username ? "null" : username);
-        log_trace("%s::%s(%d) : password      = %s", LOG_INF, NULL == password ? "null" : password);
+        log_trace("%s::%s(%d) : username      = %s", LOG_INF, NULL == _username ? "null" : _username);
+        log_trace("%s::%s(%d) : password      = %s", LOG_INF, NULL == _password ? "null" : "********");
         log_trace("%s::%s(%d) : trustStore    = %s", LOG_INF, NULL == trustStore ? "null" : trustStore);
         log_trace("%s::%s(%d) : clientCert    = %s", LOG_INF, NULL == clientCert ? "null" : clientCert);
         log_trace("%s::%s(%d) : clientKey     = %s", LOG_INF, NULL == clientKey ? "null" : clientKey);
-        log_trace("%s::%s(%d) : clientKeyPass = %s", LOG_INF, NULL == clientKeyPass ? "null" : clientKeyPass);
+        log_trace("%s::%s(%d) : clientKeyPass = %s", LOG_INF, NULL == clientKeyPass ? "null" : "********");
         log_trace("%s::%s(%d) : postData     =\n%s", LOG_INF, NULL == postData ? "null" : postData);
         for (unsigned int i = 0; headerCount > i; i++) {
             log_trace("%s::%s(%d) : headers[%d]   = %s", LOG_INF, i, NULL == headers[i] ? "null" : headers[i]);
@@ -298,7 +314,7 @@ int http_post_json(const char* url, const char* username,
     (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 
     /* Setup all the common data */
-    common_curl_setup(curl, url, username, password, trustStore, clientCert, clientKey, clientKeyPass);
+    common_curl_setup(curl, url, _username, _password, trustStore, clientCert, clientKey, clientKeyPass);
 
     /* Set the method to POST */
     log_trace("%s::%s(%d) : Setting curl to POST", LOG_INF);
@@ -313,8 +329,6 @@ int http_post_json(const char* url, const char* username,
     /*          these headers.                                                */
     /*    Also, set the content length header option to the data size.        */
     /**************************************************************************/
-/*    list = curl_slist_append(NULL, "Content-Type: application/json");
-    list = curl_slist_append(list, "Accept: application/json");*/
     /* For a POST, we need to always add the Context-Length: header */
     char clBuf[30];
     (void)snprintf(clBuf, 30, "Content-Length: %d", (int)strlen(postData));
@@ -385,11 +399,11 @@ int http_post_json(const char* url, const char* username,
             log_debug("%s::%s(%d) : Response is:\n%s", LOG_INF, chunk.memory);
             log_trace("%s::%s(%d) : Allocating memory for the response", LOG_INF);
             *pRespData = calloc(chunk.size+1, sizeof(char));
-            log_trace("%s::%s(%d) : Successfully allocated %lu bytes of memory for response", LOG_INF, chunk.size+1);
-            if ( NULL == pRespData ) {
+            if ( NULL == *pRespData ) {
                 log_error("%s::%s(%d) : Out of memory", LOG_INF);
                 toReturn = 255;
             } else {
+                log_trace("%s::%s(%d) : Successfully allocated %lu bytes of memory for response", LOG_INF, chunk.size+1);
                 *pRespData = memcpy(*pRespData, chunk.memory, chunk.size);
                 log_trace("%s::%s(%d): Response to pass back is:\n%s", LOG_INF, *pRespData);
                 toReturn = 0;
@@ -445,8 +459,8 @@ int http_post_json(const char* url, const char* username,
 /*           255 if the dynamic memory allocation for pRespData fails         */
 /*           300-511 The HTTP response error (e.g. 404 Not Found)             */
 /*                                                                            */
-int http_get_json(const char* url, const char* username,
-                   const char* password, const char* trustStore,
+int http_get_json(const char* url, const char* _username,
+                   const char* _password, const char* trustStore,
                    const char* clientCert, const char* clientKey,
                    const char* clientKeyPass, const char* headers[], const unsigned int headerCount,
                    char** pRespData, int retryCount, int retryInterval)
@@ -454,12 +468,12 @@ int http_get_json(const char* url, const char* username,
     log_debug("%s::%s(%d) : Preparing to GET from %s", LOG_INF, url);
     if (is_log_trace()) {
         log_trace("%s::%s(%d) : url           = %s", LOG_INF, NULL == url ? "null" : url);
-        log_trace("%s::%s(%d) : username      = %s", LOG_INF, NULL == username ? "null" : username);
-        log_trace("%s::%s(%d) : password      = %s", LOG_INF, NULL == password ? "null" : password);
+        log_trace("%s::%s(%d) : username      = %s", LOG_INF, NULL == _username ? "null" : _username);
+        log_trace("%s::%s(%d) : password      = %s", LOG_INF, NULL == _password ? "null" : "********");
         log_trace("%s::%s(%d) : trustStore    = %s", LOG_INF, NULL == trustStore ? "null" : trustStore);
         log_trace("%s::%s(%d) : clientCert    = %s", LOG_INF, NULL == clientCert ? "null" : clientCert);
         log_trace("%s::%s(%d) : clientKey     = %s", LOG_INF, NULL == clientKey ? "null" : clientKey);
-        log_trace("%s::%s(%d) : clientKeyPass = %s", LOG_INF, NULL == clientKeyPass ? "null" : clientKeyPass);
+        log_trace("%s::%s(%d) : clientKeyPass = %s", LOG_INF, NULL == clientKeyPass ? "null" : "********");
         for (unsigned int i = 0; headerCount > i; i++) {
             log_trace("%s::%s(%d) : headers[%d]   = %s", LOG_INF, i, NULL == headers[i] ? "null" : headers[i]);
         }
@@ -492,7 +506,7 @@ int http_get_json(const char* url, const char* username,
     (void)curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 
     /* Setup all the common data */
-    common_curl_setup(curl, url, username, password, trustStore, clientCert, clientKey, clientKeyPass);
+    common_curl_setup(curl, url, _username, _password, trustStore, clientCert, clientKey, clientKeyPass);
 
     /* Set the method to GET */
     log_trace("%s::%s(%d) : Setting curl to GET", LOG_INF);
@@ -555,11 +569,11 @@ int http_get_json(const char* url, const char* username,
             log_debug("%s::%s(%d) : Response is:\n%s", LOG_INF, chunk.memory);
             log_trace("%s::%s(%d) : Allocating memory for the response", LOG_INF);
             *pRespData = calloc(chunk.size+1, sizeof(char));
-            log_trace("%s::%s(%d) : Successfully allocated %lu bytes of memory for response", LOG_INF, chunk.size+1);
-            if ( NULL == pRespData ) {
+            if ( NULL == *pRespData ) {
                 log_error("%s::%s(%d) : Out of memory", LOG_INF);
                 toReturn = 255;
             } else {
+                log_trace("%s::%s(%d) : Successfully allocated %lu bytes of memory for response", LOG_INF, chunk.size+1);
                 *pRespData = memcpy(*pRespData, chunk.memory, chunk.size);
                 log_trace("%s::%s(%d): Response to pass back is:\n%s", LOG_INF, *pRespData);
                 toReturn = 0;

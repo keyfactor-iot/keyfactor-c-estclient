@@ -1,12 +1,12 @@
 /******************************************************************************/
-/* Copyright 2021 Keyfactor                                                   */
+/* Copyright 2023 Keyfactor                                                   */
 /* Licensed under the Apache License, Version 2.0 (the "License"); you may    */
 /* not use this file except in compliance with the License.  You may obtain a */
 /* copy of the License at http://www.apache.org/licenses/LICENSE-2.0.  Unless */
 /* required by applicable law or agreed to in writing, software distributed   */
 /* under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES   */
 /* OR CONDITIONS OF ANY KIND, either express or implied. See the License for  */
-/* thespecific language governing permissions and limitations under the       */
+/* the specific language governing permissions and limitations under the      */
 /* License.                                                                   */
 /******************************************************************************/
 #define _CRT_SECURE_NO_WARNINGS
@@ -50,40 +50,37 @@
 /*                                                                            */
 static int copy_file(const char* srcPath, const char* destPath) {
     int err = 0;
+    FILE* fpWrite = NULL;
+    FILE* fpRead = NULL;
 
     struct stat st;
-    if(stat(srcPath, &st) == 0)	{
-        FILE* fpRead = fopen(srcPath, "r");
-        if(!fpRead) err = errno;
-        FILE* fpWrite = fopen(destPath, "w");
-        if(!fpWrite) err = errno;
+    if(0 != stat(srcPath, &st))	{
+		err = errno;
+		goto exit;
+	}
+    fpRead = fopen(srcPath, "rb");
+    if(!fpRead) {
+		err = errno;
+		goto exit;
+	}
+    fpWrite = fopen(destPath, "wb");
+    if(!fpWrite) {
+		err = errno;
+		goto exit;
+	}
 
-        if(fpRead && fpWrite) {
-            char buf[1024];
+    char buf[1024];
+	size_t rcnt;
+	while (0 < (rcnt = fread(buf, 1, 1024, fpRead))) {
+		if (rcnt != (fwrite(buf, 1, rcnt, fpWrite))) {
+			err = ferror(fpWrite);
+			goto exit;
+		}
+	}
 
-            bool done = false;
-            while (!done) {
-                int rcnt = fread(buf, 1, 1024, fpRead);
-                if(rcnt != 1024) {
-                    done = true;
-                    err = ferror(fpRead);
-                }
-
-                if(!err) {
-                    int wcnt = fwrite(buf, 1, rcnt, fpWrite);
-                    if(wcnt != rcnt) {
-                        done = true;
-                        err = ferror(fpWrite);
-                    }
-                }
-            }
-        }
-        if(fpRead) fclose(fpRead);
-        if(fpWrite)	fclose(fpWrite);
-    } else {
-        err = errno;
-    }
-
+exit:
+	if (fpRead) fclose(fpRead);
+    if (fpWrite) fclose(fpWrite);
     return err;
 } /* copy_file */
 
@@ -133,11 +130,7 @@ int backup_file(const char* file) {
                 err = errno;
         }
     } else {
-        if ( NULL == file )
-            dummy = strdup("NULL");
-        else
-            dummy = strdup(file);
-        log_info("%s::%s(%d) : No file found at %s", LOG_INF, dummy);
+        log_info("%s::%s(%d) : No file name passed to backup_file function", LOG_INF);
         free(dummy);
         err = ENOENT;
     }
@@ -209,7 +202,17 @@ int read_file_bytes(const char* srcPath, unsigned char** pFileBytes, size_t* fil
     } else if (fseek(fpRead, 0, SEEK_END) != 0) {
         err = ferror(fpRead);
     } else {
-        *fileLen = ftell(fpRead);
+		errno = 0;
+        int temp = ftell(fpRead);
+		if (0 != errno) {
+			err = errno;
+			goto exit;
+		}
+        if (0 > temp) {
+            *fileLen = 0;
+		} else {
+            *fileLen = (size_t)temp;
+		}
         *pFileBytes = (unsigned char*)calloc((*fileLen) + 1, 1);
         if (!(*pFileBytes)) {
             log_error("%s::%s(%d) : Out of memory", LOG_INF);

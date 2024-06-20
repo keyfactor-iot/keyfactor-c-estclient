@@ -116,163 +116,115 @@ bool use_basic_authentication = false;              /* If a username or password
 /************************ LOCAL FUNCTION DEFINITIONS **************************/
 /******************************************************************************/
 /**                                                                           */
+/* Set a single default value                                                 */
+/*                                                                            */
+/* @return - true = successfully set the default                              */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_a_default(char* default_constant, char** target) {
+    bool result = true;
+    if (default_constant) {
+        *target = strdup(default_constant);
+        if (NULL == (*target)) {
+            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
+            result = false;
+        }
+    } else {
+        *target = NULL;
+    }
+    return result;
+} /* set_a_default */
+
+/**                                                                           */
+/* Set standard default values                                                */
+/*                                                                            */
+/* @return - true = successfully set all defaults                             */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_standard_defaults(void) {
+    if (!set_a_default(DEFAULT_CACERT_FILE, &cacert_file)) return false;
+    if (!set_a_default(DEFAULT_TRUST_STORE, &trust_store)) return false;
+    if (!set_a_default(DEFAULT_KEY_TYPE, &key_type)) return false;
+    return true;
+} /* set_standard_defaults */
+
+/**                                                                           */
+/* Set default values for the EJBCA instance we are connecting to             */
+/*                                                                            */
+/* @return - true = successfully set all defaults                             */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_ejbca_defaults(void) {
+    if (!set_a_default(DEFAULT_EJBCA_EST_ALIAS, &ejbca_est_alias)) return false;
+    if (!set_a_default(DEFAULT_BASE_EJBCA_URL, &base_ejbca_url)) return false;
+    return true;
+} /* set_ejbca_defaults */
+
+/**                                                                           */
+/* Set default values for the client certificate things                       */
+/*                                                                            */
+/* @return - true = successfully set all defaults                             */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_client_cert_defaults(void) {
+    if (!set_a_default(DEFAULT_CLIENT_CERT_FILE, &client_cert_file)) return false;
+    if (!set_a_default(DEFAULT_CLIENT_KEY_FILE, &client_key_file)) return false;
+    if (!set_a_default(DEFAULT_CLIENT_KEY_PASSWORD, &client_key_password)) return false;
+    return true;
+} /* set_client_cert_defaults */
+
+/**                                                                           */
+/* Set default values if we are using a birthing certificate                  */
+/*                                                                            */
+/* @return - true = successfully set all defaults                             */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_birthing_cert_defaults(void) {
+    if (!set_a_default(DEFAULT_BIRTH_CERT_FILE, &birth_cert_file)) return false; /* parasoft-suppress BD-PB-CC "Required to test for presence of #defines" */
+    if (!set_a_default(DEFAULT_BIRTH_KEY_FILE, &birth_key_file)) return false; /* parasoft-suppress BD-PB-CC "Required to test for presence of #defines" */
+    if (!set_a_default(DEFAULT_BIRTH_KEY_PASSWORD, &birth_key_password)) return false; /* parasoft-suppress BD-PB-CC "Required to test for presence of #defines" */
+    return true;
+} /* set_birthing_cert_defaults */
+
+/**                                                                           */
+/* Set default values for the end entity information                          */
+/*                                                                            */
+/* @return - true = successfully set all defaults                             */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_end_entity_defaults(void) {
+    if (!set_a_default(DEFAULT_EST_EE_USERNAME, &est_ee_username)) return false;
+    if (!set_a_default(DEFAULT_EST_EE_ENROLLMENTCODE_KEY, &est_ee_enrollmentcode_key)) return false;
+    if (!set_a_default(DEFAULT_EST_EE_ENROLLMENTCODE, &est_ee_enrollmentcode)) return false;
+    return true;
+} /* set_end_entity_defaults */
+
+/**                                                                           */
+/* Set default values if we are using username/password for authentication    */
+/*                                                                            */
+/* @return - true = successfully set all defaults                             */
+/*          false = Out of memory error was thrown                            */
+/*                                                                            */
+static bool set_username_password_defaults(void) {
+    if (!set_a_default(DEFAULT_PASSWORD, &password)) return false; /* parasoft-suppress BD-PB-CC "Required to test for presence of #defines" */
+    if (!set_a_default(DEFAULT_USERNAME, &username)) return false; /* parasoft-suppress BD-PB-CC "Required to test for presence of #defines" */
+    if (!set_a_default(DEFAULT_CHALLENGE_PASSWORD, &challenge_password)) return false; /* parasoft-suppress BD-PB-CC "Required to test for presence of #defines" */
+    return true;
+} /* set_username_password_defaults */
+
+/**                                                                           */
 /* Set default values                                                         */
 /*                                                                            */
 /* @return - true = successfully set all defaults                             */
 /*          false = Out of memory error was thrown                            */
 /*                                                                            */
 static bool set_defaults() {
-    if (DEFAULT_EJBCA_EST_ALIAS) {
-        ejbca_est_alias = strdup(DEFAULT_EJBCA_EST_ALIAS ? DEFAULT_EJBCA_EST_ALIAS : "");
-        if (!ejbca_est_alias) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        ejbca_est_alias = NULL;
-    }
-    if (DEFAULT_BIRTH_CERT_FILE) {
-        birth_cert_file = strdup(DEFAULT_BIRTH_CERT_FILE ? DEFAULT_BIRTH_CERT_FILE : "");
-        if (!birth_cert_file) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        birth_cert_file = NULL;
-    }
-    if (DEFAULT_CACERT_FILE) {
-        cacert_file = strdup(DEFAULT_CACERT_FILE ? DEFAULT_CACERT_FILE : "");
-        if (!cacert_file) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        cacert_file = NULL;
-    }
-    if (DEFAULT_BIRTH_KEY_FILE) {
-        birth_key_file = strdup(DEFAULT_BIRTH_KEY_FILE ? DEFAULT_BIRTH_KEY_FILE : "");
-        if (!birth_key_file) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        birth_key_file = NULL;
-    }
-    if (DEFAULT_CLIENT_CERT_FILE) {
-        client_cert_file = strdup(DEFAULT_CLIENT_CERT_FILE ? DEFAULT_CLIENT_CERT_FILE : "");
-        if (!client_cert_file) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        client_cert_file = NULL;
-    }
-    if (DEFAULT_CLIENT_KEY_FILE) {
-        client_key_file = strdup(DEFAULT_CLIENT_KEY_FILE ? DEFAULT_CLIENT_KEY_FILE : "");
-        if (!client_key_file) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        client_key_file = NULL;
-    }
-    if (DEFAULT_CLIENT_KEY_PASSWORD) {
-        client_key_password = strdup(DEFAULT_CLIENT_KEY_PASSWORD ? DEFAULT_CLIENT_KEY_PASSWORD : "");
-        if (!client_key_password) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        client_key_password = NULL;
-    }
-    if (DEFAULT_KEY_TYPE) {
-        key_type = strdup(DEFAULT_KEY_TYPE ? DEFAULT_KEY_TYPE : "");
-        if (!key_type) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        key_type = NULL;
-    }
-    if (DEFAULT_PASSWORD) {
-        password = strdup(DEFAULT_PASSWORD ? DEFAULT_PASSWORD : "");
-        if (!password) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        password = NULL;
-    }
-    if (DEFAULT_TRUST_STORE) {
-        trust_store = strdup(DEFAULT_TRUST_STORE ? DEFAULT_TRUST_STORE : "");
-        if (!trust_store) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        trust_store = NULL;
-    }
-    if (DEFAULT_USERNAME) {
-        username = strdup(DEFAULT_USERNAME ? DEFAULT_USERNAME : "");
-        if (!username) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        username = NULL;
-    }
-    if (DEFAULT_BASE_EJBCA_URL) {
-        base_ejbca_url = strdup(DEFAULT_BASE_EJBCA_URL ? DEFAULT_BASE_EJBCA_URL : "");
-        if (!base_ejbca_url) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        base_ejbca_url = NULL;
-    }
-    if (DEFAULT_EST_EE_USERNAME) {
-        est_ee_username = strdup(DEFAULT_EST_EE_USERNAME ? DEFAULT_EST_EE_USERNAME : "");
-        if (!est_ee_username) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        est_ee_username = NULL;
-    }
-    if (DEFAULT_EST_EE_ENROLLMENTCODE_KEY) {
-        est_ee_enrollmentcode_key = strdup(DEFAULT_EST_EE_ENROLLMENTCODE_KEY ? DEFAULT_EST_EE_ENROLLMENTCODE_KEY : "");
-        if (!est_ee_enrollmentcode_key) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        est_ee_enrollmentcode_key = NULL;
-    }
-    if (DEFAULT_EST_EE_ENROLLMENTCODE) {
-        est_ee_enrollmentcode = strdup(DEFAULT_EST_EE_ENROLLMENTCODE ? DEFAULT_EST_EE_ENROLLMENTCODE : "");
-        if (!est_ee_enrollmentcode) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        est_ee_enrollmentcode = NULL;
-    }
-    if (DEFAULT_BIRTH_KEY_PASSWORD) {
-        birth_key_password = strdup(DEFAULT_BIRTH_KEY_PASSWORD ? DEFAULT_BIRTH_KEY_PASSWORD : "");
-        if (!birth_key_password) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    } else {
-        birth_key_password = NULL;
-    }
-    if (DEFAULT_CHALLENGE_PASSWORD) {
-        challenge_password = strdup(DEFAULT_CHALLENGE_PASSWORD ? DEFAULT_CHALLENGE_PASSWORD : "");
-        if (!challenge_password) {
-            fprintf(stderr, "%s::%s(%d) : Out of memory\n", LOG_INF);
-            return false;
-        }
-    }
+    if (!set_standard_defaults()) return false;
+    if (!set_ejbca_defaults()) return false;
+    if (!set_client_cert_defaults()) return false;
+    if (!set_birthing_cert_defaults()) return false;
+    if (!set_end_entity_defaults()) return false;
+    if (!set_username_password_defaults()) return false;
     return true;
 } /* set_defaults */
 
@@ -398,88 +350,146 @@ static bool get_ca_certs(const char* url) {
 } /* get_ca_certs */
 
 /**                                                                           */
-/*	Get the CA Certs in base64 encoding.  Decode the certs into PKCS#7 format */
-/*  Convert the DER PKCS#7 format into a PEM.                                 */
+/*	Process the request to the re-enrollment endpoint                         */
 /*                                                                            */
-/*	@param  - [Input] url = The base url to hit                               */
+/*	@param  - [Input] url = The complete url to hit                           */
+/*  @param - [Output] response = the JSON response                            */
+/*	@return - int response from the HTTP POST, 200 for good, else curl or     */
+/*            http error code                                                 */
+/*                                                                            */
+static int send_reenrollment(const char* url, char** response) {
+    const char* headersToSend[2] = { "Accept: */*",
+                                     "Content-Transfer-Encoding: base64"};
+    return http_post_json(url,
+                       NULL, NULL,
+                       trust_store,
+                       client_cert_file, client_key_file, client_key_password,
+                       csr,
+                       headersToSend, 2,
+                       response,
+                       http_retries, http_retry_delay);
+} /* send_reenrollment */
+
+/**                                                                           */
+/*	Process the request using EST Vendor mode                                 */
+/*                                                                            */
+/*	@param  - [Input] url = The complete url to hit                           */
+/*  @param - [Output] response = the JSON response                            */
+/*	@return - int response from the HTTP POST, 200 for good, else curl or     */
+/*            http error code                                                 */
+/*                                                                            */
+static int use_est_vendor_mode(const char* url, char** response) {
+    const char* headersToSend[2] = { "Accept: */*",
+                                     "Content-Transfer-Encoding: base64"};
+    int r;
+    log_trace("%s::%s(%d) : Using EST Vendor Mode for New Device", LOG_INF);
+    r = http_post_json(url,
+                       NULL, NULL,
+                       trust_store,
+                       birth_cert_file, birth_key_file, birth_key_password,
+                       csr,
+                       headersToSend, 2,
+                       response,
+                       http_retries, http_retry_delay);
+    log_debug("%s::%s(%d) : Response = \n%s", LOG_INF, *response ? *response : "null");
+    return r;
+} /* use_est_vendor_mode */
+
+/**                                                                           */
+/*	Process the request using EST and basic authentication                    */
+/*                                                                            */
+/*	@param  - [Input] url = The complete url to hit                           */
+/*  @param - [Output] response = the JSON response                            */
+/*	@return - int response from the HTTP POST, 200 for good, else curl or     */
+/*            http error code                                                 */
+/*                                                                            */
+static int use_est_basic_auth(const char* url, char** response) {
+    const char* headersToSend[2] = { "Accept: */*",
+                                     "Content-Transfer-Encoding: base64"};
+    int r;
+    if (!username || !password || (0 == strlen(username)) || (0 == strlen(password)) ) {
+        log_error("%s::%s(%d) : Error if we are using basic authentication, both a username "
+                  "and password must be supplied", LOG_INF);
+        return false;
+    } else {
+        log_trace("%s::%s(%d) : Using Basic Authentication for New Device", LOG_INF);
+    }
+    r = http_post_json(url,
+                       username, password,
+                       trust_store,
+                       NULL, NULL, NULL,
+                       csr,
+                       headersToSend, 2,
+                       response,
+                       http_retries, http_retry_delay);
+    log_debug("%s::%s(%d) : Response = \n%s", LOG_INF, *response ? *response : "null");
+    return r;
+} /* use_est_basic_auth */
+
+/**                                                                           */
+/*	Process the request using EST with enrollment codes in the subject or CSR */
+/*                                                                            */
+/*	@param  - [Input] url = The complete url to hit                           */
+/*  @param - [Output] response = the JSON response                            */
+/*	@return - int response from the HTTP POST, 200 for good, else curl or     */
+/*            http error code                                                 */
+/*                                                                            */
+static int use_est_enrollment_code(const char* url, char** response) {
+    const char* headersToSend[2] = { "Accept: */*",
+                                     "Content-Transfer-Encoding: base64"};
+    int r;
+    log_trace("%s::%s(%d) : New Device using enrollment code in subject or CSR", LOG_INF);
+    r = http_post_json(url,
+                       NULL, NULL,
+                       trust_store,
+                       NULL, NULL, NULL,
+                       csr,
+                       headersToSend, 2,
+                       response,
+                       http_retries, http_retry_delay);
+    log_debug("%s::%s(%d) : Response = \n%s", LOG_INF, *response ? *response : "null");
+    return r;
+} /* use_est_enrollment_code */
+
+/**                                                                           */
+/*	Process the request by calling the correct EST function for new enrollment*/
+/*                                                                            */
+/*	@param  - [Input] url = The complete url to hit                           */
+/*  @param - [Output] response = the JSON response                            */
+/*	@return - int response from the HTTP POST, 200 for good, else curl or     */
+/*            http error code                                                 */
+/*                                                                            */
+static int send_enrollment(const char* url, char** response) {
+    int r;
+
+    if (!new_device) {
+        log_error("%s::%s(%d) : Not set to enroll nor to reenroll, so how did we get here?", LOG_INF);
+        return -999;
+    }
+
+    if (est_vendormode) {
+        r = use_est_vendor_mode(url, response);
+    } else if (use_basic_authentication) {
+        r = use_est_basic_auth(url, response);
+    } else { /* default to using the enrollment code in subject or CSR */
+        r = use_est_enrollment_code(url, response);
+    }
+
+    return r;
+} /* send_enrollment */
+
+/**                                                                           */
+/*	Process the response by decoding the PKCS7 package                        */
+/*                                                                            */
+/*	@param  - [Input] response = the JSON response                            */
 /*	@return - success : true                                                  */
 /*			  failure : false                                                 */
 /*                                                                            */
-static bool send_pkcs10(const char* url, bool reenroll) {
-
-    const char* headersToSend[2] = { "Accept: */*",
-                                     "Content-Transfer-Encoding: base64"};
-    char* response = NULL;
+static bool process_pkcs7_response(const char* response) {
+    size_t derLen = 0;
     char* pem = NULL;
     unsigned char* pkcs7Der = NULL;
-    size_t derLen = 0;
     bool result = false;
-    int r = 0;
-
-    if (reenroll) {  /* reenrollment *MUST* use mTLS */
-        r = http_post_json(url,
-                           NULL, NULL,
-                           trust_store,
-                           client_cert_file, client_key_file, client_key_password,
-                           csr,
-                           headersToSend, 2,
-                           &response,
-                           http_retries, http_retry_delay);
-    } else {
-        /* simpleenroll may use 1-way TLS (end entity username:enrollmentcode) in the CSR */
-        /*             *OR*                                                               */
-        /* end entity username in CSR with mTLS for Vendor Cert Auth                      */
-        if ( new_device && est_vendormode ) {
-            log_trace("%s::%s(%d) : Using EST Vendor Mode for New Device", LOG_INF);
-            r = http_post_json(url,
-                               NULL, NULL,
-                               trust_store,
-                               birth_cert_file, birth_key_file, birth_key_password,
-                               csr,
-                               headersToSend, 2,
-                               &response,
-                               http_retries, http_retry_delay);
-            log_debug("%s::%s(%d) : Response = \n%s", LOG_INF, response ? response : "null");
-        } else if ( new_device && use_basic_authentication ) {
-            if (!username || !password || (0 == strlen(username)) || (0 == strlen(password)) ) {
-                log_error("%s::%s(%d) : Error if we are using basic authentication, both a username "
-                          "and password must be supplied", LOG_INF);
-                return false;
-            } else {
-                log_trace("%s::%s(%d) : Using Basic Authentication for New Device", LOG_INF);
-            }
-            r = http_post_json(url,
-                               username, password,
-                               trust_store,
-                               NULL, NULL, NULL,
-                               csr,
-                               headersToSend, 2,
-                               &response,
-                               http_retries, http_retry_delay);
-            log_debug("%s::%s(%d) : Response = \n%s", LOG_INF, response ? response : "null");
-        } else if ( new_device ) {
-            log_trace("%s::%s(%d) : New Device using enrollment code in subject or CSR", LOG_INF);
-            r = http_post_json(url,
-                               NULL, NULL,
-                               trust_store,
-                               NULL, NULL, NULL,
-                               csr,
-                               headersToSend, 2,
-                               &response,
-                               http_retries, http_retry_delay);
-            log_debug("%s::%s(%d) : Response = \n%s", LOG_INF, response ? response : "null");
-        } else {
-            log_error("%s::%s(%d) : Not set to enroll nor to reenroll, so how did we get here?", LOG_INF);
-            if (response) free(response);
-            return false;
-        }
-    }
-
-    if (HTTP_CLIENT_SUCCESS != r) {
-        log_error("%s::%s(%d) : Bad data received from EST endpoint", LOG_INF);
-        if (response) free(response);
-        return false;
-    }
 
     log_trace("%s::%s(%d) : Preparing to decode PKCS#7 response", LOG_INF);
     pkcs7Der = base64_decode(response, strlen(response), &derLen);
@@ -511,6 +521,37 @@ static bool send_pkcs10(const char* url, bool reenroll) {
         free(pem);
     }
 
+    return result;
+} /* process_pkcs7_response */
+
+/**                                                                           */
+/*	Send a PKCS#10 request to EJBCA's EST Alias Endpoint                      */
+/*                                                                            */
+/*	@param  - [Input] url = The base url to hit                               */
+/*  @param  - [Input] reenroll = true if we are only reenrolling              */
+/*	@return - success : true                                                  */
+/*			  failure : false                                                 */
+/*                                                                            */
+static bool send_pkcs10(const char* url, bool reenroll) {
+
+    char* response = NULL;
+    bool result = false;
+    int r = 0;
+
+    if (reenroll) {  /* reenrollment *MUST* use mTLS */
+        r = send_reenrollment(url, &response);
+    } else {
+        r = send_enrollment(url, &response);
+    }
+
+    if (HTTP_CLIENT_SUCCESS != r) {
+        log_error("%s::%s(%d) : Bad data received from EST endpoint", LOG_INF);
+        if (response) free(response);
+        return false;
+    }
+
+    result = process_pkcs7_response(response);
+
     if (response) free(response);
 
     return result;
@@ -524,6 +565,11 @@ static bool send_pkcs10(const char* url, bool reenroll) {
 /*                                                                            */
 static bool do_test_status() {
     char* url = NULL;
+    if ( skip_ejbca_check ) {
+        log_info("%s::%s(%d) : Input parameters successfully parsed, skipping EJBCA health check", LOG_INF);
+        return true;
+    }
+
     if ( NULL == ( url = string_cat(base_ejbca_url, ejbca_test_endpoint_url)) ) {
         log_error("%s::%s(%d) : Failed to create url for EJBCA", LOG_INF);
         return false;
@@ -569,25 +615,136 @@ static bool do_cacerts() {
 } /* do_cacerts */
 
 /**                                                                           */
+/*	Set the PKCS#10 subject to be the same as the last issued client cert     */
+/*                                                                            */
+/*	@return - success : true                                                  */
+/*			  failure : false                                                 */
+/*                                                                            */
+static bool use_last_subject(void) {
+    bool result = false;
+    if (subject) free(subject);
+    subject = NULL;
+    if ( NULL == (subject = ssl_get_subject(client_cert_file, MAX_SUBJECT_LEN)) ) {
+        log_error("%s::%s(%d) : Error reading certificate's subject at %s", LOG_INF, client_cert_file);
+        result = false;
+    } else {
+        log_debug("%s::%s(%d) : Found certificate subject = %s", LOG_INF, subject);
+        log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+        result = true;
+    }
+    return result;
+} /* use_last_subject */
+
+/**                                                                           */
+/*	Set the PKCS#10 subject use the End Entity username                       */
+/*                                                                            */
+/*	@return - success : true                                                  */
+/*			  failure : false                                                 */
+/*                                                                            */
+static bool use_est_username_subject(void) {
+    uint16_t subjectPtr = 0;
+    subject = calloc(strlen(est_ee_username) + 4, sizeof(*subject));
+    if (!subject) {
+        log_error("%s::%s(%d) : Out of memory", LOG_INF);
+        return false;
+    }
+    log_trace("%s::%s(%d) : Creating subject with CN=%s", LOG_INF, est_ee_username);
+    subjectPtr += sprintf(subject, "CN=%s", est_ee_username);
+    if ( 0 == subjectPtr ) {
+        log_error("%s::%s(%d) : Error allocating memory or generating DN", LOG_INF);
+        return false;
+    }
+    log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+    return true;
+} /* use_est_username_subject */
+
+/**                                                                           */
+/*	Set the PKCS#10 subject also contain the enrollment code key & value      */
+/*                                                                            */
+/*	@return - success : true                                                  */
+/*			  failure : false                                                 */
+/*                                                                            */
+static bool set_subject_to_est_enrollment_code_and_key(void) {
+    uint16_t subjectPtr = 0;
+    uint16_t oldSubjectPtr = subjectPtr;
+    log_debug("%s::%s(%d) : Adding ,%s=%s for enrollment code to subject", LOG_INF,
+              est_ee_enrollmentcode_key, est_ee_enrollmentcode);
+    size_t tempLen = strlen(subject)
+                     + strlen(est_ee_enrollmentcode_key)
+                     + strlen(est_ee_enrollmentcode)
+                     + 1 /* for , */
+                     + 1 /* for = */
+                     + 1 /* for \0 */
+    ;
+    if (MAX_SUBJECT_LEN < tempLen) {
+        log_error("%s::%s(%d) : Error buffer size of %u is too small for subject",
+                  LOG_INF, MAX_SUBJECT_LEN);
+        return false;
+    }
+    oldSubjectPtr = subjectPtr;
+    subject = (char*)realloc(subject, tempLen);
+    if (!subject) {
+        log_error("%s::%s(%d) : Out of memory", LOG_INF);
+        return false;
+    }
+    subjectPtr += sprintf(subject+oldSubjectPtr, ",%s=%s",
+                          est_ee_enrollmentcode_key, est_ee_enrollmentcode);
+    if (oldSubjectPtr == subjectPtr) {
+        log_error("%s::%s(%d) : Error adding enrollment code to DN", LOG_INF);
+        return false;
+    }
+    log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+    return true;
+} /* set_subject_to_est_enrollment_code_and_key */
+
+/**                                                                           */
+/*	Validate the enrollment code and key exist, because they should           */
+/*                                                                            */
+/*	@return - success : both the key and value (code) exist                   */
+/*			  failure : otherwise                                             */
+/*                                                                            */
+static bool validate_enrollment_code_and_key(void) {
+    bool result = true;
+    if ((!est_ee_enrollmentcode) || (0 == strlen(est_ee_enrollmentcode))) {
+        log_error("%s::%s(%d) : An enrollment code must be defined", LOG_INF);
+        result = false;
+    }
+    if ((est_ee_enrollmentcode_key) && (0 < strlen(est_ee_enrollmentcode_key))) {
+        log_error("%s::%s(%d) : An enrollment key field must be defined", LOG_INF);
+        result = false;
+    }
+    return result;
+} /* validate_enrollment_code_and_key */
+
+/**                                                                           */
+/*	control flow for using EST Enrollment code in the subject                 */
+/*                                                                            */
+/*	@return - success : true                                                  */
+/*			  failure : false                                                 */
+/*                                                                            */
+static bool use_est_enrollment_code_subject(void) {
+    bool result = false;
+    log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+    if (validate_enrollment_code_and_key()) {
+        result = set_subject_to_est_enrollment_code_and_key();
+        log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+    } else {
+        log_error("%s::%s(%d) : An enrollment code must be defined", LOG_INF);
+        result = false;
+    }
+    return result;
+} /* use_est_enrollment_code_subject */
+
+/**                                                                           */
 /* Set the subject for the CSR based on the parameters used                   */
 /*                                                                            */
 /*	@return - success : true                                                  */
 /*			  failure : false                                                 */
 /*                                                                            */
 static bool set_subject(bool reenroll) {
-    uint16_t subjectPtr = 0;
-    uint16_t oldSubjectPtr = subjectPtr;
 
     if ( reenroll ) { /* Use the subject of the last certificate */
-        if (subject) free(subject);
-        subject = NULL;
-        if ( NULL == (subject = ssl_get_subject(client_cert_file, MAX_SUBJECT_LEN)) ) {
-            log_error("%s::%s(%d) : Error reading certificate's subject at %s", LOG_INF, client_cert_file);
-            return false;
-        } else {
-            log_debug("%s::%s(%d) : Found certificate subject = %s", LOG_INF, subject);
-            return true;
-        }
+        return use_last_subject();
     }
 
     if (subject_supplied_on_command_line) { /* This overrides any supplied username/enrollmentcode */
@@ -596,67 +753,56 @@ static bool set_subject(bool reenroll) {
     }
 
     if ((est_ee_username) && (0 < strlen((est_ee_username)))) {  /* Set the username as the CN */
-        subject = calloc(strlen(est_ee_username) + 4, sizeof(*subject));
-        if (!subject) {
-            log_error("%s::%s(%d) : Out of memory", LOG_INF);
-            return false;
-        }
-        log_trace("%s::%s(%d) : Creating subject with CN=%s", LOG_INF, est_ee_username);
-        subjectPtr += sprintf(subject, "CN=%s", est_ee_username);
-        if ( 0 == subjectPtr ) {
-            log_error("%s::%s(%d) : Error allocating memory or generating DN", LOG_INF);
-            return false;
-        }
+        return use_est_username_subject();
     } else {
         log_error("%s::%s(%d) : A username must be defined!", LOG_INF);
         return false;
     }
-    log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+
+    /* If we are using a vendor certificate or challenge password, or we are using basic auth, */
+    /* then don't modify the subject */
+    if ( est_vendormode || use_challenge_password || username  || password ) {
+        return true;
+    }
 
     /* If we aren't using a vendor certificate, and we aren't using a challenge password, */
     /* and we are not using basic auth, then we need an enrollment code in the subject    */
-    if ( !est_vendormode && !use_challenge_password && (!username && !password) ) {
-        if ((est_ee_enrollmentcode) && (0 < strlen(est_ee_enrollmentcode))) {
-            if ((est_ee_enrollmentcode_key) && (0 < strlen(est_ee_enrollmentcode_key))) {
-                log_debug("%s::%s(%d) : Adding ,%s=%s for enrollment code to subject", LOG_INF,
-                          est_ee_enrollmentcode_key, est_ee_enrollmentcode);
-                size_t tempLen = strlen(subject)
-                                 + strlen(est_ee_enrollmentcode_key)
-                                 + strlen(est_ee_enrollmentcode)
-                                 + 1 /* for , */
-                                 + 1 /* for = */
-                                 + 1 /* for \0 */
-                ;
-                if (MAX_SUBJECT_LEN < tempLen) {
-                    log_error("%s::%s(%d) : Error buffer size of %u is too small for subject",
-                              LOG_INF, MAX_SUBJECT_LEN);
-                    return false;
-                }
-                oldSubjectPtr = subjectPtr;
-                subject = (char*)realloc(subject, tempLen);
-                if (!subject) {
-                    log_error("%s::%s(%d) : Out of memory", LOG_INF);
-                    return false;
-                }
-                subjectPtr += sprintf(subject+oldSubjectPtr, ",%s=%s",
-                                      est_ee_enrollmentcode_key, est_ee_enrollmentcode);
-                if (oldSubjectPtr == subjectPtr) {
-                    log_error("%s::%s(%d) : Error adding enrollment code to DN", LOG_INF);
-                    return false;
-                }
-            } else {
-                log_error("%s::%s(%d) : An enrollment key field must be defined", LOG_INF);
-                return false;
-            }
-        } else {
-            log_error("%s::%s(%d) : An enrollment code must be defined", LOG_INF);
-            return false;
-        }
-        log_debug("%s::%s(%d) : DN is now %s", LOG_INF, subject);
+    return use_est_enrollment_code_subject();
+
+} /* set_subject */
+
+/**                                                                           */
+/*	Set the full URL to use when talking to EJBCA                             */
+/*                                                                            */
+/*  @param  - [Input] reenroll = true if we are only doing a reenrollment     */
+/*                               false if this is a new device                */
+/*	@return - success : the full URL to use                                   */
+/*			  failure : NULL                                                  */
+/*                                                                            */
+static char* set_url(bool reenroll) {
+    char* url1 = NULL;
+    char* url2 = NULL;
+    char* url3 = NULL;
+
+    if (NULL == (url1 = string_cat(base_ejbca_url, ejbca_well_known)) ||
+        NULL == (url2 = string_cat(url1, ejbca_est_alias)) ) {
+        goto exit;
     }
 
-    return true;
-} /* set_subject */
+    if (reenroll) {
+        url3 = string_cat(url2, ejbca_est_simplereenroll_url);
+    } else {
+        url3 = string_cat(url2, ejbca_est_simpleenroll_url);
+    }
+
+exit:
+    if (url1) free(url1);
+    if (url2) free(url2);
+    if (!url3) {
+        log_error("%s::%s(%d) : Failed to create url for EJBCA", LOG_INF);
+    }
+    return url3;
+} /* set_url */
 
 /**                                                                           */
 /*	Control flow for sending an EST enrollment request                        */
@@ -701,45 +847,22 @@ static bool do_csr(bool reenroll) {
     log_debug("%s::%s(%d) : Successfully generated CSR = \n%s", LOG_INF, csr);
     log_info("%s::%s(%d) : Successfully created CSR with subject %s", LOG_INF, subject);
 
-    char* url = NULL;
-    char* url1 = NULL;
-    char* url2 = NULL;
-    if (reenroll) {
-        if (NULL == (url = string_cat(base_ejbca_url, ejbca_well_known)) ||
-            NULL == (url1 = string_cat(url, ejbca_est_alias)) ||
-            NULL == (url2 = string_cat(url1, ejbca_est_simplereenroll_url))) {
-            log_error("%s::%s(%d) : Failed to create url for EJBCA", LOG_INF);
-            if (csr) free(csr);
-            csr = NULL;
-            if (url) free(url);
-            if (url1) free(url1);
-            if (url2) free(url2);
-            return false;
-        }
-    } else {
-        if (NULL == (url = string_cat(base_ejbca_url, ejbca_well_known)) ||
-            NULL == (url1 = string_cat(url, ejbca_est_alias)) ||
-            NULL == (url2 = string_cat(url1, ejbca_est_simpleenroll_url))) {
-            log_error("%s::%s(%d) : Failed to create url for EJBCA", LOG_INF);
-            if (csr) free(csr);
-            csr = NULL;
-            if (url) free(url);
-            if (url1) free(url1);
-            if (url2) free(url2);
-            return false;
-        }
+    char* url = set_url(reenroll);
+    if (!url) {
+        if (csr) free(csr);
+        csr = NULL;
+        return false;
     }
-    free(url);
-    free(url1);
-    bool r = send_pkcs10(url2, reenroll);
+
+    bool r = send_pkcs10(url, reenroll);
     if (!r) {
         log_error("%s::%s(%d) : Failed to get a certificate", LOG_INF);
         if (csr) free(csr);
         csr = NULL;
-        free(url2);
+        free(url);
         return false;
     }
-    free(url2);
+    free(url);
 
     return true;
 } /* do_csr */
@@ -749,7 +872,7 @@ static bool do_csr(bool reenroll) {
 /*                                                                            */
 /*	@return - nothing                                                         */
 /*                                                                            */
-static void free_memory() {
+static void free_memory() { /* parasoft-suppress METRICS-44 "Freeing Memory must check for NULL" */
     if (ejbca_est_alias) free(ejbca_est_alias);
     if (birth_cert_file) free(birth_cert_file);
     if (cacert_file) free (cacert_file);
@@ -788,18 +911,12 @@ static void free_memory() {
     csr = NULL;
 } /* free_memory() */
 
-/******************************************************************************/
-/*********************** GLOBAL FUNCTION DEFINITIONS **************************/
-/******************************************************************************/
-int main(int argc, char* argv[]) {
-    /* If we want to use defaults, copy them now                             */
-    /* If, instead, the desire is to always use command line switches, then  */
-    /* The code size can be minimized by removing this and the #defines      */
-    /* Another option is to use a configuration json file (since a JSON)     */
-    /* library is already used by EST - may be implemented later             */
-    bool setup = set_defaults();
-    if ( !setup ) exit(EXIT_FAILURE);
-
+/**                                                                           */
+/*	Control flow for processing the command line switches                     */
+/*                                                                            */
+/*	@return - nothing                                                         */
+/*                                                                            */
+static void do_parameters(int argc, char* argv[]) {
     /* Parse command line switches & perform a sanity check on the values    */
     /* Code can be shrunk by removing this validation step                   */
     bool parameterParsingResult = parse_parameters(argc, argv);
@@ -825,31 +942,88 @@ int main(int argc, char* argv[]) {
         new_device = true;
     }
 
-    ssl_init();
+    return;
+} /* do_parameters */
 
-    if ( skip_ejbca_check ) {
-        log_info("%s::%s(%d) : Input parameters successfully parsed, skipping EJBCA health check", LOG_INF);
-    } else {
-        log_info("%s::%s(%d) : Input parameters successfully parsed, testing EJBCA status", LOG_INF);
-        if (!do_test_status())
-            goto exit_failure;
+/**                                                                           */
+/*	Control flow for a new device                                             */
+/*                                                                            */
+/*	@return - sucess : true                                                   */
+/*            failure: false                                                  */
+/*                                                                            */
+static bool do_est_new_device(void) {
+    log_info("%s::%s(%d) : Getting CA certs from EST Alias", LOG_INF);
+    if (!do_cacerts()) {
+        return false;
     }
 
+    log_info("%s::%s(%d) : Generating CSR for submittal to endpoint", LOG_INF);
+    if (!do_csr(false)) {
+        return false;
+    }
+
+    return true;
+} /* do_est_new_device */
+
+/**                                                                           */
+/*	Control flow for an existing device's re-enrollment                       */
+/*                                                                            */
+/*	@return - sucess : true                                                   */
+/*            failure: false                                                  */
+/*                                                                            */
+static bool do_est_reenroll_only(void) {
+    log_info("%s::%s(%d) : Generating re-enrollment for submittal to endpoint", LOG_INF);
+    if (!do_csr(true)) {
+        return false;
+    }
+    return true;
+} /* do_est_reenroll_only */
+
+/**                                                                           */
+/*	Control flow for performing the EST function                              */
+/*                                                                            */
+/*	@return - sucess : true                                                   */
+/*            failure: false                                                  */
+/*                                                                            */
+static bool do_est_function(void) {
+    bool result = true;
     if ( new_device ) {
-        log_info("%s::%s(%d) : Getting CA certs from EST Alias", LOG_INF);
-        if (!do_cacerts())
-            goto exit_failure;
-
-        log_info("%s::%s(%d) : Generating CSR for submittal to endpoint", LOG_INF);
-        if (!do_csr(false))
-            goto exit_failure;
+        result = do_est_new_device();
+    } else if ( reenroll_only ) {
+        result = do_est_reenroll_only();
+    } else {
+        log_error("%s::%s(%d) : We should never get here", LOG_INF);
+        result = false;
     }
+    return result;
+} /* do_est_function */
 
-    if ( !new_device && reenroll_only ) {
-        log_info("%s::%s(%d) : Generating re-enrollment for submittal to endpoint", LOG_INF);
-        if (!do_csr(true))
-            goto exit_failure;
-    }
+/******************************************************************************/
+/*********************** GLOBAL FUNCTION DEFINITIONS **************************/
+/******************************************************************************/
+/**                                                                           */
+/*	Main program entry point                                                  */
+/*                                                                            */
+/* If we want to use #define defaults, copy them using set_defaults()         */
+/* If, instead, the desire is to always use command line switches, then       */
+/* The code size can be minimized by removing this and the #defines           */
+/* Another option is to use a configuration json file (since a JSON)          */
+/* library is already used by EST                                             */
+/*                                                                            */
+/* This library is an example of *ALL* possible enrollment capabilities that  */
+/* EJBCA implements using EST.  This example library can be used as a starting*/
+/* point to generate a complete EST library by customizing it to the use case */
+/*                                                                            */
+/* That is a programmer can eliminate unused use cases & implement the passing*/
+/* of parameters as the IoT device sees fit.                                  */
+/*                                                                            */
+int main(int argc, char* argv[]) {
+    if ( !set_defaults() ) exit(EXIT_FAILURE);
+    ssl_init();
+    do_parameters(argc, argv);
+    log_info("%s::%s(%d) : Input parameters successfully parsed, testing EJBCA status", LOG_INF);
+    if (!do_test_status())  goto exit_failure;
+    if (!do_est_function()) goto exit_failure;
 
     ssl_cleanup();
     log_info("%s::%s(%d) : Successfully finished client", LOG_INF);
