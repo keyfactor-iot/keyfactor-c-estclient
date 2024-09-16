@@ -183,7 +183,7 @@ static bool set_string(char** stringToSet, const char* nameToSetString, int maxL
 /*                  16 bit unsigned number.                                   */
 /*                                                                            */
 static bool string_to_uint16_t(const char* stringToConvert, uint16_t* target) {
-    static const uint16_t MAX_SIZE = (uint16_t)(2^16);
+    static const uint16_t MAX_SIZE = (uint16_t)(1 << 16);
     uint16_t multiplier = 1;
     unsigned long workingResult = 0;
     int len = strlen(stringToConvert);

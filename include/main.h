@@ -20,8 +20,9 @@
 /* Revision History:                                                           */
 /*  0.15.0.0 = Initial version supporting OpenSSL 1.1.x final testing required */
 /*  1.0.0.0  = Initial version using OpenSSL 1.1.x.                            */
+/*  1.1.0.0  = Updated to allow OpenSSL 3.x by suppressing warnings            */
 /*                                                                             */
-#define PROGRAM_VERSION 0x0001000000000000UL
+#define PROGRAM_VERSION 0x0001000100000000UL
 
 /**************************************************************************/
 /************************* GLOBAL DEFINES *********************************/

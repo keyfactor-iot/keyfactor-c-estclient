@@ -10,6 +10,9 @@
 /* License.                                                                   */
 /******************************************************************************/
 #define _CRT_SECURE_NO_WARNINGS
+/* suppress the deprecated error message for now */ //:TODO Update for OpenSSL 3.0
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #include <string.h>
 #include <stdbool.h>
@@ -1291,6 +1294,10 @@ void ssl_init(void)
     log_info("%s::%s(%d) : Currently using OpenSSL version: %s\n", LOG_INF, OpenSSL_version(OPENSSL_VERSION));
 	return;
 } /* ssl_init */
+
+
+/* suppress the deprecated error message for now */ //:TODO Update for OpenSSL 3.0
+#pragma GCC diagnostic pop
 
 /******************************************************************************/
 /******************************* END OF FILE **********************************/

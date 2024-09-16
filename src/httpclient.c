@@ -20,6 +20,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <curl/curl.h>
+#include <openssl/ssl.h>
 
 /******************************************************************************/
 /***************************** GLOBAL VARIABLES *******************************/
@@ -43,6 +44,12 @@ struct MemoryStruct {
   size_t size;
 };
 
+// Structure to hold client certificate and key paths
+struct client_cert_info {
+    const char *client_cert;
+    const char *client_key;
+};
+
 /******************************************************************************/
 /************************** LOCAL GLOBAL VARIABLES ****************************/
 /******************************************************************************/
@@ -51,7 +58,44 @@ unsigned char* client_cert_compressed = NULL;
 /******************************************************************************/
 /************************ LOCAL FUNCTION DEFINITIONS **************************/
 /******************************************************************************/
-/**                                                                           */
+
+/* Debug callback function for CURL */
+static int debug_callback(CURL *handle, curl_infotype type, char *data, size_t size, void *userptr) {
+    (void)handle;
+    (void)userptr;
+    const char *text = NULL;
+    switch (type) {
+        case CURLINFO_TEXT:
+            fprintf(stdout, "== Info: %s", data);
+            break;
+        case CURLINFO_HEADER_OUT:
+            text = "=> Send header";
+            break;
+        case CURLINFO_DATA_OUT:
+            text = "=> Send data";
+            break;
+        case CURLINFO_SSL_DATA_OUT:
+            text = "=> Send SSL data";
+            break;
+        case CURLINFO_HEADER_IN:
+            text = "<= Recv header";
+            break;
+        case CURLINFO_DATA_IN:
+            text = "<= Recv data";
+            break;
+        case CURLINFO_SSL_DATA_IN:
+            text = "<= Recv SSL data";
+            break;
+        default:
+            return 0;
+    }
+    fprintf(stdout, "%s, %lu bytes (0x%lx)\n", text, (unsigned long)size, (unsigned long)size);
+    fwrite(data, 1, size, stdout);
+    fprintf(stdout, "\n");
+    return 0;
+} /* debug_callback */
+
+ /**                                                                           */
 /* The memory callback function curl uses -- the default is fwrite, so we     */
 /* want to change that behaviour.                                             */
 /*                                                                            */
@@ -225,6 +269,14 @@ static void common_curl_setup(CURL* curl,
 
     /* Turn on verbose output for tracing */
     if ( is_log_trace() ) {
+        log_trace("%s::%s(%d) : Turning on cURL trace output", LOG_INF);
+        (void)curl_easy_setopt( curl, CURLOPT_VERBOSE, 1 );
+        /* Set the debug callback function */
+        (void)curl_easy_setopt(curl, CURLOPT_DEBUGFUNCTION, debug_callback);
+        (void)curl_easy_setopt(curl, CURLOPT_DEBUGDATA, NULL);
+        (void)curl_easy_setopt( curl, CURLOPT_ERRORBUFFER, errBuff );
+        errBuff[0] = 0; /* empty the error buffer */
+    } else if ( is_log_debug() ) {
         log_trace("%s::%s(%d) : Turning on cURL verbose output", LOG_INF);
         (void)curl_easy_setopt( curl, CURLOPT_VERBOSE, 1 );
         (void)curl_easy_setopt( curl, CURLOPT_ERRORBUFFER, errBuff );

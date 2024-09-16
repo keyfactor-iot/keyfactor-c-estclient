@@ -55,7 +55,7 @@ bool generate_keypair(const char* _keyType, int _keySize) {
         log_verbose("%s::%s(%d) : Generating key pair with type %s and length %d", LOG_INF, _keyType, _keySize);
         if ( 0 == strcasecmp(_keyType, "RSA") )
             bResult = ssl_generate_rsa_keypair(_keySize);
-        else if ( 0 == strcasecmp(keyType, "ECC") )
+        else if ( 0 == strcasecmp(_keyType, "ECC") )
             bResult = ssl_generate_ecc_keypair(_keySize);
         else
             log_error("%s::%s(%d) : Invalid key type %s", LOG_INF, _keyType);
@@ -104,11 +104,10 @@ char* generate_csr(const char* asciiSubject,
 #endif
 
 /**                                                                           */
-/* Request the crypto layer to save the cert and key to the locations         */
+/* Request the crypto layer to save the key to the location                   */
 /* requested. The crypto layer uses the temporary key it has generated        */
 /* to store into the location requested.                                      */
 /*                                                                            */
-/* @param  - [Input] : storePath = the store location for the cert            */
 /* @param  - [Input] : keyPath = the location to save the key, if NULL or     */
 /*                     blank, store the encoded key appended to the cert.     */
 /* @param  - [Input] : password = the password for the private key            */
@@ -119,25 +118,19 @@ char* generate_csr(const char* asciiSubject,
 /* @return - success : 0                                                      */
 /*           failure : an unsigned long error code                            */
 /*                                                                            */
-unsigned long save_cert_key(const char* const storePath,
-                            const char* const keyPath,
-							const char* const _password, /* parasoft-suppress CERT_C-API00-a "Freeing Memory must check for NULL" */
-                            const char* const cert)
+unsigned long save_key(const char* const keyPath,
+                       const char* const _password, /* parasoft-suppress CERT_C-API00-a "Freeing Memory must check for NULL" */
+                       const char* const cert)
 {
     unsigned long err = 0;
+    (void)cert;
 #define ERROR_CODE_RETURN 999
 
-    if ( (NULL == storePath) || ( (size_t)0 == strlen(storePath) ) ) {
-        log_error("%s::%s(%d) : storePath must be defined", LOG_INF);
-        err = ERROR_CODE_RETURN;
-    } else if ( (NULL == keyPath) || ( (size_t)0 == strlen(keyPath) ) ) {
+    if ( (NULL == keyPath) || ( (size_t)0 == strlen(keyPath) ) ) {
         log_error("%s::%s(%d) : keyPath must be defined", LOG_INF);
         err = ERROR_CODE_RETURN;
-    } else if ( (NULL == cert) || ( (size_t)0 == strlen(cert) ) ) {
-        log_error("%s::%s(%d) : The cert must be defined", LOG_INF);
-        err = ERROR_CODE_RETURN;
     } else {
-        err = ssl_save_cert_key(storePath, keyPath, _password, cert);
+        err = ssl_save_cert_key(NULL, keyPath, _password, NULL);
         if (0LU != err)
             log_error("%s::%s(%d) : Failed to save certificate or key", LOG_INF);
     }

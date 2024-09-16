@@ -503,7 +503,7 @@ static bool process_pkcs7_response(const char* response) {
     if (pem) {
         log_debug("%s::%s(%d) : The x509 PEM is: \n%s", LOG_INF, pem);
         log_info("%s::%s(%d) : Successfully decoded PKCS#7 structure into an x.509 structure", LOG_INF);
-        if (0 == save_cert_key(NULL, client_key_file, client_key_password, NULL)) {
+        if (0 == save_key(client_key_file, client_key_password, NULL)) {
             log_info("%s::%s(%d) : Successfully wrote client key to store at %s", LOG_INF, client_key_file);
             result = true;
         } else {

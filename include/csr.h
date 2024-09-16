@@ -27,10 +27,9 @@ char* generate_csr(const char* asciiSubject, size_t* csrLen, const bool useChall
 char* generate_csr(const char* asciiSubject, size_t* const csrLen, const bool useChallengePassword,
                    const char* const challengePassword);
 #endif
-unsigned long save_cert_key(const char* const storePath,
-                            const char* const keyPath,
-                            const char* const _password,
-                            const char* const cert);
+unsigned long save_key(const char* const keyPath,
+                       const char* const _password,
+                       const char* const cert);
 #endif /* __CSR_H__ */
 /******************************************************************************/
 /******************************* END OF FILE **********************************/
