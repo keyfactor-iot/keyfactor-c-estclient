@@ -1273,9 +1273,11 @@ void ssl_cleanup(void)
 	log_trace("%s::%s(%d) : Cleaning up openssl", LOG_INF);
 	if (keyPair) EVP_PKEY_free(keyPair);
 	/* NOTE: The RSA and ECC key are freed by this call */
+#ifndef OPENSSL_IS_BORINGSSL
     EVP_cleanup();
     CRYPTO_cleanup_all_ex_data();
     ERR_free_strings();
+#endif
     return;
 } /* ssl_cleanup */
 
@@ -1287,10 +1289,12 @@ void ssl_cleanup(void)
 /*                                                                            */
 void ssl_init(void)
 {
+#ifndef OPENSSL_IS_BORINGSSL
 	log_trace("%s::%s(%d) : Adding openSSL algorithms", LOG_INF);
 	OpenSSL_add_all_algorithms();
 	log_trace("%s::%s(%d) : Loading Crypto error strings", LOG_INF);
 	ERR_load_crypto_strings();
+#endif
     log_info("%s::%s(%d) : Currently using OpenSSL version: %s\n", LOG_INF, OpenSSL_version(OPENSSL_VERSION));
 	return;
 } /* ssl_init */

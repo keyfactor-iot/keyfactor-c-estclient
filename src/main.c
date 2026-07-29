@@ -19,10 +19,10 @@
 #include "../include/csr.h"
 #include "../include/options.h"
 #include "../include/ssl_interface.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <openssl/engine.h>
 
 
 /******************************************************************************/
