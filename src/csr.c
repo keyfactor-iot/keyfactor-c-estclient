@@ -55,10 +55,12 @@ bool generate_keypair(const char* _keyType, int _keySize) {
         log_verbose("%s::%s(%d) : Generating key pair with type %s and length %d", LOG_INF, _keyType, _keySize);
         if ( 0 == strcasecmp(_keyType, "RSA") )
             bResult = ssl_generate_rsa_keypair(_keySize);
-        else if ( 0 == strcasecmp(_keyType, "ECC") )
+        else if ( 0 == strcasecmp(_keyType, "ECC")
+               || 0 == strcasecmp(_keyType, "ECDSA")
+               || 0 == strcasecmp(_keyType, "EC") )
             bResult = ssl_generate_ecc_keypair(_keySize);
         else
-            log_error("%s::%s(%d) : Invalid key type %s", LOG_INF, _keyType);
+            log_error("%s::%s(%d) : Invalid key type %s (accepted: RSA, ECC, ECDSA, EC)", LOG_INF, _keyType);
     }
 
 	return bResult;
