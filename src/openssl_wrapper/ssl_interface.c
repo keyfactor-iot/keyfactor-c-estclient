@@ -18,6 +18,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
 #include "../../include/ssl_interface.h"
 #include "../../include/logging.h"
 #include "../../include/file_utilities.h"
