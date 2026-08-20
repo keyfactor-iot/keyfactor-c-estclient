@@ -20,7 +20,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <curl/curl.h>
-#include <openssl/ssl.h>
 
 /******************************************************************************/
 /***************************** GLOBAL VARIABLES *******************************/

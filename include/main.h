@@ -36,7 +36,7 @@
 #define MAX_CLIENTKEY_NAME      128
 #define MAX_TRUST_STORE_NAME    128
 #define MAX_CLIENTPASS_NAME     64
-#define MAX_KEY_TYPEVAR         3
+#define MAX_KEY_TYPEVAR         5
 #define MAX_KEYSIZE_LEN         4
 #define MAX_PASSWORD_LEN        64
 #define MAX_SUBJECT_LEN         1024
