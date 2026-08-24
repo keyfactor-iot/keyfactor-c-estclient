@@ -174,6 +174,36 @@ static bool set_string(char** stringToSet, const char* nameToSetString, int maxL
 } /* set_string */
 
 /**                                                                           */
+/* Rewrite accepted key type aliases to their canonical form.                 */
+/*                                                                            */
+/* ECDSA and EC are accepted spellings of ECC. Canonicalizing once, here at   */
+/* parse time, means every downstream comparison only has to know the         */
+/* canonical names. Matching the aliases at each comparison site instead      */
+/* invites the sites to drift apart: an alias added to the dispatch in csr.c  */
+/* but not to the key-size validation below silently skips validation, and    */
+/* the ECC generator's unknown-size path then decides what to do with an      */
+/* unvalidated size.                                                          */
+/*                                                                            */
+/* @param  - [Input/Output] : keyTypeToCanonicalize rewritten in place        */
+/* @return - success : true                                                   */
+/*         - failure : false (out of memory)                                  */
+/*                                                                            */
+static bool canonicalize_key_type(char** keyTypeToCanonicalize) {
+    if ( (!keyTypeToCanonicalize) || (!(*keyTypeToCanonicalize)) ) return true;
+
+    if ( (0 == strcasecmp(*keyTypeToCanonicalize, "ECDSA")) ||
+         (0 == strcasecmp(*keyTypeToCanonicalize, "EC")) ) {
+        free( *keyTypeToCanonicalize );
+        *keyTypeToCanonicalize = strdup("ECC");
+        if ( !(*keyTypeToCanonicalize) ) {
+            fprintf(stderr, "%s::%s(%d) : Out of memory", LOG_INF);
+            return false;
+        }
+    }
+    return true;
+} /* canonicalize_key_type */
+
+/**                                                                           */
 /* Convert a string to a unsigned 16 bit number                               */
 /*                                                                            */
 /* @param  - stringToConvert = a string representing a 16 bit number          */
@@ -400,6 +430,7 @@ static bool parse_single_option( int optionIndex, char *argv[] ) {
             break;
         case KEY_TYPE_SWITCH_HASH:
             result = set_string(&key_type, optarg, MAX_KEY_TYPEVAR);
+            if ( result ) result = canonicalize_key_type(&key_type);
             break;
         case LOG_LEVEL_SWITCH_HASH:
             set_logging_level(optarg[0]);

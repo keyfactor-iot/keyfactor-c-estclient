@@ -53,11 +53,11 @@ bool generate_keypair(const char* _keyType, int _keySize) {
         log_error("%s::%s(%d) : Error KeyType must be defined", LOG_INF);
     } else {
         log_verbose("%s::%s(%d) : Generating key pair with type %s and length %d", LOG_INF, _keyType, _keySize);
+        /* Aliases (ECDSA, EC) are canonicalized to ECC at parse time in
+         * options.c, so only the canonical forms need matching here. */
         if ( 0 == strcasecmp(_keyType, "RSA") )
             bResult = ssl_generate_rsa_keypair(_keySize);
-        else if ( 0 == strcasecmp(_keyType, "ECC")
-               || 0 == strcasecmp(_keyType, "ECDSA")
-               || 0 == strcasecmp(_keyType, "EC") )
+        else if ( 0 == strcasecmp(_keyType, "ECC") )
             bResult = ssl_generate_ecc_keypair(_keySize);
         else
             log_error("%s::%s(%d) : Invalid key type %s (accepted: RSA, ECC, ECDSA, EC)", LOG_INF, _keyType);
