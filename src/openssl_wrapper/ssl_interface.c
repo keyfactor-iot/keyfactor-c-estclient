@@ -774,9 +774,12 @@ bool ssl_generate_ecc_keypair(int keySize)
 			eccNid = NID_secp521r1;
 			break;
 		default:
-			log_error("%s::%s(%d) : Invalid ECC key length: %d. Falling back to default curve", LOG_INF, keySize);
-			eccNid = NID_X9_62_prime256v1;
-			break;
+			/* Fail rather than substitute a curve. Silently falling back to
+			 * P-256 here means a caller who asked for a stronger key gets a
+			 * weaker one and a success return, with only a log line to show
+			 * for it. Callers that want P-256 can ask for 256. */
+			log_error("%s::%s(%d) : Invalid ECC key length: %d", LOG_INF, keySize);
+			return false;
 		}
 
 		if (keyPair) {
